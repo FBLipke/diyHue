@@ -207,12 +207,19 @@ def _entertainmentService(group, user, session):
     # A user without a client key cannot serve as DTLS identity. Fall back to
     # the username so the entertainment server still starts instead of
     # crashing on a None key.
-    psk = _psk_value(user.client_key or user.username)
+    # Clients that the Hue app pairs directly (the HDMI Sync Box) present the
+    # entertainment credentials, not the API user. Use them when
+    # config.entertainment provides them and fall back to the API user.
+    _ent = bridgeConfig["config"].get("entertainment") or {}
+    psk = _psk_value(_ent.get("client_key") or user.client_key or user.username)
+    psk_identity = _ent.get("identity") or user.username
     opensslCmd = [
         _OPENSSL_BIN, "s_server",
         "-4", "-dtls1_2", "-listen",
-        "-cipher", "PSK-AES128-GCM-SHA256:PSK-AES128-CCM8:PSK-AES128-CCM:@SECLEVEL=0",
-        "-psk", psk, "-psk_identity", user.username,
+        # The Sync Box negotiates PSK-AES128-CBC-SHA (0x00A8). Without CBC in
+        # the list the client never starts the handshake.
+        "-cipher", "PSK-AES128-CBC-SHA:PSK-AES128-GCM-SHA256:PSK-AES128-CCM8:PSK-AES128-CCM:@SECLEVEL=0",
+        "-psk", psk, "-psk_identity", psk_identity,
         "-nocert", "-accept", _accept_address(),
     ]
     _logged_cmd = []

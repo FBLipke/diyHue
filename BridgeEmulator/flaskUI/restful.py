@@ -51,11 +51,25 @@ def authorize(username, resource='', resourceId='', resourceParam=''):
     return ["success"]
 
 
-def buildConfig():
+def _bridge_ip_for_client(remote_addr):
+    """Return the bridge address a client should use to reach it.
+
+    A client in another subnet (the HDMI Sync Box lives on its own segment)
+    cannot use the bridge's primary address. ``config.client_ip_map`` maps
+    such a client address to the bridge address routable from its side.
+    """
+    config = bridgeConfig["config"]
+    mapping = config.get("client_ip_map") or {}
+    if remote_addr and remote_addr in mapping:
+        return mapping[remote_addr]
+    return config["ipaddress"]
+
+
+def buildConfig(remote_addr=None):
     result = staticConfig()
     config = bridgeConfig["config"]
     result.update({"Hue Essentials key": config["Hue Essentials key"], "Remote API enabled": config["Remote API enabled"], "apiversion": config["apiversion"], "bridgeid": config["bridgeid"],
-                   "ipaddress": config["ipaddress"], "netmask": config["netmask"], "gateway": config["gateway"], "mac": config["mac"], "name": config["name"], "swversion": config["swversion"],
+                   "ipaddress": _bridge_ip_for_client(remote_addr), "netmask": config["netmask"], "gateway": config["gateway"], "mac": config["mac"], "name": config["name"], "swversion": config["swversion"],
                    "swupdate2": config["swupdate2"], "timezone": config["timezone"], "discovery": config["discovery"]})
     result["UTC"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
     result["localtime"] = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
@@ -115,7 +129,7 @@ class EntireConfig(Resource):
         if "success" not in authorisation:
             return authorisation
         result = {}
-        result["config"] = buildConfig()
+        result["config"] = buildConfig(request.remote_addr)
         for resource in ["lights", "groups", "scenes", "rules", "resourcelinks", "schedules", "sensors"]:
             result[resource] = {}
             for resource_id in bridgeConfig[resource]:
@@ -136,7 +150,7 @@ class ResourceElements(Resource):
                     for object in bridgeConfig[resource]:
                         response[object] = bridgeConfig[resource][object].getV1Api().copy()
                 elif resource == "config":
-                    response = buildConfig()
+                    response = buildConfig(request.remote_addr)
                 return response
         elif resource == "config":
             config = bridgeConfig["config"]
