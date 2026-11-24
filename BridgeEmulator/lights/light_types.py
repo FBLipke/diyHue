@@ -191,3 +191,70 @@ archetype = {"tableshade":"table_shade",
     "huefloodlightcamera":"hue_floodlight_camera",
     "twilight":"twilight"
     }
+
+## ---------------------------------------------------------------------------
+## Additional Hue model IDs (from the official MotionAware device list).
+## Every entry is derived from an existing template so capabilities, state and
+## dynamics stay consistent; only naming and archetype differ.
+## ---------------------------------------------------------------------------
+from copy import deepcopy as _deepcopy
+
+
+def _derive_light(_base, _v1=None, _config=None, _device=None):
+    _entry = _deepcopy(lightTypes[_base])
+    _entry["v1_static"].update(_v1 or {})
+    _entry["config"].update(_config or {})
+    _entry["device"].update(_device or {})
+    return _entry
+
+
+# Hue color downlight (LCT002) - same engine as LCT015, ceiling archetype
+lightTypes["LCT002"] = _derive_light(
+    "LCT015",
+    _v1={"type": "Extended color light"},
+    _config={"archetype": "recessedceiling"},
+    _device={"product_name": "Hue color downlight", "product_archetype": "recessed_ceiling"},
+)
+
+# Hue lightstrip (first generation, LST001) - same feature set as LST002
+lightTypes["LST001"] = _derive_light(
+    "LST002",
+    _v1={"type": "Color light", "productid": "Philips-LST001-1-LedStripsv1"},
+    _config={"archetype": "huelightstrip"},
+    _device={"product_name": "Hue lightstrip", "product_archetype": "hue_lightstrip"},
+)
+
+# Hue bloom and Hue aura share the Iris engine
+for _model, _product in (("LLC011", "Hue bloom"), ("LLC012", "Hue bloom"), ("LLC014", "Hue aura")):
+    lightTypes[_model] = _derive_light(
+        "LLC010",
+        _v1={"type": "Color light"},
+        _config={"archetype": "huebloom"},
+        _device={"product_name": _product, "product_archetype": "bloom"},
+    )
+
+# Hue Go (all hardware revisions and retail model numbers)
+lightTypes["LLC020"] = _derive_light(
+    "LLC010",
+    _v1={"type": "Color light"},
+    _config={"archetype": "huego"},
+    _device={"product_name": "Hue go", "product_archetype": "hue_go"},
+)
+
+# Retail SKUs of the Hue Go table lamp report the SKU instead of a model ID.
+LIGHT_MODEL_ALIASES = {
+    _sku: "LLC020"
+    for _sku in (
+        "929003128401", "929003128501", "929003128601", "929003128701",
+        "929003128801", "929003128901", "929003129001",
+        "929003521401", "929003521501", "929003521601", "929003521701",
+        "7602031C7", "7602031I6", "7602031J6", "7602031K6", "7602031N6",
+        "7602031P7", "7602031PU", "7602031U7",
+        "915005821901", "915005822001", "915005822301", "915005822501",
+        "915005822601",
+        "LCT026", "LCT030",
+    )
+}
+
+for _alias, _canonical in LIGHT_MODEL_ALIASES.items():
+    lightTypes[_alias] = lightTypes[_canonical]

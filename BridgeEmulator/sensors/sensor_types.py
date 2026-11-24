@@ -152,9 +152,50 @@ sensorTypes["TRADFRI wireless dimmer"] = {"ZHASwitch": {"state": {"buttonevent":
 # This dict is exported so that other modules (e.g. the MQTT service) can
 # register the same aliases for their own lookup tables without duplicating
 # this list.
+# Hue single-button accessories (smart button, wall switch module, Friends of Hue).
+# They share one button input with the standard Hue event set.
+_HUE_BUTTON_INPUTS = [
+    {
+        "repeatintervals": [800],
+        "events": [
+            {"buttonevent": 1000, "eventtype": "initial_press"},
+            {"buttonevent": 1001, "eventtype": "repeat"},
+            {"buttonevent": 1002, "eventtype": "short_release"},
+            {"buttonevent": 1003, "eventtype": "long_release"},
+            {"buttonevent": 1010, "eventtype": "long_press"},
+        ],
+    }
+]
+
+
+def _button_sensor(_productname):
+    return {
+        "ZLLSwitch": {
+            "state": {"buttonevent": 1000, "lastupdated": "none"},
+            "config": {"on": True, "battery": 100, "reachable": True, "pending": []},
+            "static": {
+                "swupdate": {"state": "noupdates", "lastinstall": "2023-01-01T00:00:00Z"},
+                "manufacturername": "Signify Netherlands B.V.",
+                "productname": _productname,
+                "swversion": "2.59.25",
+                "capabilities": {"certified": True, "primary": True, "inputs": _HUE_BUTTON_INPUTS},
+            },
+        }
+    }
+
+
+sensorTypes["ROM001"] = _button_sensor("Hue smart button")
+sensorTypes["RDM001"] = _button_sensor("Hue wall switch module")
+sensorTypes["RDM003"] = _button_sensor("Hue smart button")
+sensorTypes["RDM004"] = _button_sensor("Hue wall switch module")
+sensorTypes["RDM005"] = _button_sensor("Hue smart button")
+sensorTypes["FOHSWITCH"] = _button_sensor("Friends of Hue switch")
+
 MODEL_ALIASES = {
     "RWL020": "RWL021",        # Hue dimmer switch (older EU hardware revision)
     "RWL022": "RWL021",        # Hue dimmer switch (newer hardware revision)
+    "RDM006": "RDM002",        # Hue tap dial switch (newer hardware revision)
+    "SML004": "SML002",        # Hue outdoor motion sensor (newer hardware revision)
 }
 
 # Sensor types that are sub-components of another sensor's device in CLIP v2.
