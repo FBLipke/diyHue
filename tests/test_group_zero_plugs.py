@@ -15,6 +15,7 @@ class FakeLight:
         self.protocol = "native"
         self.protocol_cfg = {"ip": "127.0.0.1"}
         self.state = {"on": on, "bri": 100}
+        self.config = {"archetype": "plug" if str(modelid).startswith("LOM") else "sultanbulb"}
         self.updateLightState = Mock()
         self.setV1State = Mock()
 
@@ -31,10 +32,11 @@ class FakeGroup:
 
 
 class GroupZeroPlugTests(unittest.TestCase):
-    """Group 0 means "all lights" and must not switch sockets.
+    """No group action may switch sockets.
 
-    Sockets appear as Hue on/off plug-in units (LOM001/LOM004/...), so
-    turning every light off would cut power to whatever is plugged in.
+    Sockets appear as Hue on/off plug-in units (LOM001/LOM004/...). A group
+    action covers lights only, so switching a room off never cuts power to
+    whatever is plugged in.
     """
 
     def setUp(self):
@@ -53,10 +55,17 @@ class GroupZeroPlugTests(unittest.TestCase):
         self.assertEqual(self.bulb.setV1State.call_count, 1)
         self.assertEqual(self.plug.setV1State.call_count, 0)
 
-    def test_regular_group_still_switches_plug(self):
+    def test_regular_group_leaves_plug_untouched(self):
         group = FakeGroup("3", [self.bulb, self.plug])
         setGroupAction(group, {"on": False})
-        self.assertEqual(self.plug.setV1State.call_count, 1)
+        self.assertEqual(self.bulb.setV1State.call_count, 1)
+        self.assertEqual(self.plug.setV1State.call_count, 0)
+        self.assertTrue(self.plug.state["on"], "plug must stay switched on")
+
+    def test_group_with_only_plug_does_not_switch_it(self):
+        group = FakeGroup("5", [self.plug])
+        setGroupAction(group, {"on": False})
+        self.assertEqual(self.plug.setV1State.call_count, 0)
 
 
 if __name__ == "__main__":
