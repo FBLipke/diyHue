@@ -256,5 +256,9 @@ LIGHT_MODEL_ALIASES = {
     )
 }
 
+# Hue smart plug hardware revisions all behave like the LOM001 template.
+for _model in ("LOM002", "LOM003", "LOM005", "LOM006", "LOM007", "LOM008", "LOM009", "LOM011"):
+    lightTypes[_model] = _deepcopy(lightTypes["LOM001"])
+
 for _alias, _canonical in LIGHT_MODEL_ALIASES.items():
     lightTypes[_alias] = lightTypes[_canonical]
